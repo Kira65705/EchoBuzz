@@ -1,9 +1,9 @@
-name: Build Flutter APK
+name: Build Signed AAB
 
 on:
   push:
     branches:
-      - main # 如果你的主分支名叫 master，请将这里的 main 改为 master
+      - main # 如果你的主分支名叫 master，请改为 master
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # 推荐使用 Java 17
+          java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -28,11 +28,21 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build AAB
+        run: flutter build appbundle --release
 
-      - name: Upload APK
+      - name: Sign AAB
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: build/app/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload Signed AAB
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: release-signed-aab
+          path: ${{steps.sign_app.outputs.signedReleaseFile}}
